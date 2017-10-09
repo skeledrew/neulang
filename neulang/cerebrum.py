@@ -1,3 +1,6 @@
+#! /home/skeledrew/.pyenv/shims/python3
+
+
 # This file is part of neulang
 
 # neulang - A language sitting on top of Python that executes pseudocode that's very close to natural language.
@@ -25,6 +28,8 @@ from builtins import bytes, str
 import sys
 import pdb
 import re
+from os.path import exists
+import json
 
 
 class Cerebrum():
@@ -197,8 +202,59 @@ def create_cerebrum():
     return Cerebrum()
 
 
+def main():
+    args = sys.argv
+    if len(args) == 1: return
+    global interact
+    cere = Cerebrum()
+
+    for pos, arg in enumerate(args):
+
+        if pos > 0 and exists(arg):
+            # script given; TODO: pass script args into script env
+            script = open(args[1]).read()
+            cere.read(script)
+            cere.think()
+            if not interact: return
+            break
+
+        elif arg in ['-c']:
+            # command given
+            script = args[pos+1]
+            cere.read(script)
+            cere.think()
+            if not interact: return
+            break
+
+        elif arg in ['-i']: interact = True
+
+        elif arg in ['-h', '--help', '-?']:
+            return
+
+        elif arg in ['-v', '--version']:
+            print('neu {}'.format(__version__))
+            return
+
+        elif arg in ['-d']:
+            global DEBUG
+            DEBUG = True
+            continue
+    i_act_script = 'interact.org'
+    cere.read(open(i_act_script).read())
+    cere.think()
+
+
+DEBUG = False
+
+meta = json.load(open('meta.json'))
+__author__ = meta.get('author', 'skeledrew')
+__version__ = meta.get('version', '0.0.1')
+
 interact = False
 
 if not __name__ == '__main__' and sys.argv[0] == '':
     # using interpreter
     interact = True
+
+if __name__ == '__main__':
+    main()
