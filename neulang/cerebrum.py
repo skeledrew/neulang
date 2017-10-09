@@ -1,6 +1,5 @@
 #! /home/skeledrew/.pyenv/shims/python3
 
-
 # This file is part of neulang
 
 # neulang - A language sitting on top of Python that executes pseudocode that's very close to natural language.
@@ -21,7 +20,6 @@
 # You should have received a copy of the GNU Affero General Public
 # License along with neulang.  If not, see <http://www.gnu.org/licenses/>.
 
-
 from __future__ import unicode_literals
 from builtins import bytes, str
 
@@ -33,7 +31,6 @@ import json
 
 
 class Cerebrum():
-
     def __init__(self, populate=True):
         self._nuclei = {}
         self._thot_text = None
@@ -48,7 +45,11 @@ class Cerebrum():
         if populate: self.make_neurons()
 
     def make_neurons(self, *nuclei):
-        if not nuclei: nuclei = [globals()[elem] for elem in globals() if elem.startswith('neu_')]
+        if not nuclei:
+            nuclei = [
+                globals()[elem] for elem in globals()
+                if elem.startswith('neu_')
+            ]
         cnt = 0
 
         for nucleus in nuclei:
@@ -61,7 +62,9 @@ class Cerebrum():
     def think(self):
         # usually a single neuron at the top
         if DEBUG: pdb.set_trace()
-        self._thoughts['last'] = [neuron.fire(self._thoughts) for neuron in self._neurons]
+        self._thoughts['last'] = [
+            neuron.fire(self._thoughts) for neuron in self._neurons
+        ]
         return
 
     def read(self, text, style='org'):
@@ -99,7 +102,8 @@ class Cerebrum():
 
                 if sub_tree:
                     # recurse and connect to assoc neuron
-                    tree[-1].attach(self._make_neuron_tree(sub_tree, level_cnt+1))
+                    tree[-1].attach(
+                        self._make_neuron_tree(sub_tree, level_cnt + 1))
                     sub_tree = []
 
                 else:
@@ -112,11 +116,12 @@ class Cerebrum():
             else:
                 # shouldn't be here
                 raise Exception('shouldn\'t be here')
-        if sub_tree: tree[-1].attach(self._make_neuron_tree(sub_tree, level_cnt+1))
+        if sub_tree:
+            tree[-1].attach(self._make_neuron_tree(sub_tree, level_cnt + 1))
         return tree
 
-class Neuron():
 
+class Neuron():
     def __init__(self, text, nuclei):
         self._chain = []
         self._rx = ''
@@ -138,7 +143,8 @@ class Neuron():
                 if not match: continue
                 nucleus = nuclei[rx]
                 self._rx = rx
-                setattr(self, '_nucleus', nucleus.__get__(self, self.__class__))
+                setattr(self, '_nucleus', nucleus.__get__(
+                    self, self.__class__))
             res = self
 
         except Exception as e:
@@ -149,7 +155,9 @@ class Neuron():
         # just a stub
         pass
 
-    def parse(self, text, ):
+    def parse(
+            self,
+            text, ):
         pass
 
     def attach(self, nodes):
@@ -185,10 +193,15 @@ def neu_500_print(*args):
     text = self.get_text()
     what = re.match(rx, text).group('What')
     invoke = text.split(' ')[0]
-    if what in ['it']: what = state['special'].get('last_value', 'I dunno what to {}'.format(invoke))
-    if 'from' in text and text.split(' ')[1] == 'from': what = state['var_heap'].get(what.replace(' ', '_'), 'Cannot find that one')
+    if what in ['it']:
+        what = state['special'].get('last_value',
+                                    'I dunno what to {}'.format(invoke))
+    if 'from' in text and text.split(' ')[1] == 'from':
+        what = state['var_heap'].get(
+            what.replace(' ', '_'), 'Cannot find that one')
     print(what)
     return True
+
 
 def neu_500_input(*args):
     rx = r'(get|read) (?P<Var>[\w ]+?)( with prompt (?P<Prompt>[\w ]+))? from( the)? user'
@@ -202,15 +215,18 @@ def neu_500_input(*args):
     state['special']['last_value'] = value
     return True
 
+
 def neu_500_eval(*args):
     rx = r'evaluate (?P<Expr>[\w ]+)'
     if not args: return rx
     self, state = args
     expr = re.match(rx, self.get_text()).group('Expr')
-    if expr in ['it']: expr = state['special'].get('last_value', 'Nothing to evaluate')
+    if expr in ['it']:
+        expr = state['special'].get('last_value', 'Nothing to evaluate')
     state['self'].read(expr)
     state['self'].think()
     return True
+
 
 def neu_500_loop(*args):
     rx = r'loop( for each (?P<Item>[\w ]+?) in (?P<Coll>[\w ]+)| while (?P<WCond>[\w ]+)| until (?P<UCond>[\w ]+))?'
@@ -236,12 +252,15 @@ def neu_500_loop(*args):
             if state['special']['break_out'] <= break_out:
                 break
 
+
 def load_nuclei(cere, path):
     # get nuclei from a script or dir of scripts
     factory = []
 
+
 def create_cerebrum():
     return Cerebrum()
+
 
 def main():
     args = sys.argv
@@ -262,14 +281,15 @@ def main():
 
         elif arg in ['-c']:
             # command given
-            script = args[pos+1].replace('\\n', '\n')
+            script = args[pos + 1].replace('\\n', '\n')
             if DEBUG: pdb.set_trace()
             cere.read(script)
             cere.think()
             if not interact: return
             break
 
-        elif arg in ['-i']: interact = True
+        elif arg in ['-i']:
+            interact = True
 
         elif arg in ['-h', '--help', '-?']:
             return
