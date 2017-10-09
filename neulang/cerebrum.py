@@ -19,11 +19,12 @@
 # License along with neulang.  If not, see <http://www.gnu.org/licenses/>.
 
 
+from __future__ import unicode_literals
+from builtins import bytes, str
+
 import sys
 import pdb
 import re
-
-import future
 
 
 class Cerebrum():
@@ -36,6 +37,7 @@ class Cerebrum():
             'run_queue': [],
             'var_heap': {},
             'self': self,
+            'special': {},
         }
         self._neurons = []
         if populate: self.make_neurons()
@@ -53,7 +55,7 @@ class Cerebrum():
 
     def think(self):
         # usually a single neuron at the top
-        if interact: pdb.set_trace()
+        #if interact: pdb.set_trace()
         self._thoughts['last'] = [neuron.fire(self._thoughts) for neuron in self._neurons]
         return
 
@@ -109,6 +111,7 @@ class Neuron():
 
     def __init__(self, text, nuclei):
         self._chain = []
+        self._rx = ''
         self.build(text, nuclei)
 
     def __str__(self):
@@ -145,7 +148,12 @@ class Neuron():
         self._chain.append(nodes)
 
     def fire(self, state):
-        return self._nucleus(state)
+        try:
+            return self._nucleus(state)
+
+        except Exception as e:
+            print(repr(e))
+            pdb.post_mortem()
 
     def get_text(self):
         return self._text
@@ -157,13 +165,33 @@ class Neuron():
         pass
 
 
-def neu_print(*args):
-    rx = r'print (?P<What>[\w ]+)'
+def neu_500_print(*args):
+    rx = r'(print|say)( from)? (?P<What>[\w ]+)'
     if not args: return rx
-    self = args[0]
-    what = re.match(rx, self.get_text()).group('What')
+    self, state = args
+    text = self.get_text()
+    what = re.match(rx, text).group('What')
+    invoke = text.split(' ')[0]
+    if what in ['it']: what = state['special'].get('last_value', 'I dunno what to {}'.format(invoke))
+    if 'from' in text and text.split(' ')[1] == 'from': what = state['var_heap'].get(what.replace(' ', '_'), 'Cannot find that one')
     print(what)
     return True
+
+def neu_500_input(*args):
+    rx = r'get (?P<Var>[\w ]+?)( with prompt (?P<Prompt>[\w ]+))? from( the)? user'
+    if not args: return rx
+    self, state = args
+    vars = re.match(rx, self.get_text()).groupdict()
+    prompt = vars.get('Prompt', None)
+    if not prompt: prompt = 'enter something'
+    value = input(prompt + ' ')
+    state['var_heap'][vars.get('Var').replace(' ', '_')] = value
+    state['special']['last_value'] = value
+    return True
+
+def load_nuclei(cere, path):
+    # get nuclei from a script or dir of scripts
+    factory = []
 
 def create_cerebrum():
     return Cerebrum()
