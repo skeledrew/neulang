@@ -1,0 +1,6 @@
+#! /bin/neu
+
+* loop
+** read expression with prompt Enter expression from user
+** evaluate it
+** print from result

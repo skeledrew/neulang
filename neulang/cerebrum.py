@@ -60,13 +60,15 @@ class Cerebrum():
 
     def think(self):
         # usually a single neuron at the top
-        #if interact: pdb.set_trace()
+        if DEBUG: pdb.set_trace()
         self._thoughts['last'] = [neuron.fire(self._thoughts) for neuron in self._neurons]
         return
 
     def read(self, text, style='org'):
         # convert text into neurons
-        #if interact: pdb.set_trace()
+        if DEBUG: pdb.set_trace()
+        if not '*' in text: text = '* ' + text
+        if text in ['-*quit*-', '-*exit*-']: sys.exit(0)
         self._thot_text = text
         neuron_list = []
         indent = r'^\*+ '
@@ -110,6 +112,7 @@ class Cerebrum():
             else:
                 # shouldn't be here
                 raise Exception('shouldn\'t be here')
+        if sub_tree: tree[-1].attach(self._make_neuron_tree(sub_tree, level_cnt+1))
         return tree
 
 class Neuron():
@@ -150,15 +153,20 @@ class Neuron():
         pass
 
     def attach(self, nodes):
-        self._chain.append(nodes)
+        self._chain.extend(nodes)
 
     def fire(self, state):
         try:
             return self._nucleus(state)
 
         except Exception as e:
-            print(repr(e))
-            pdb.post_mortem()
+
+            if DEBUG:
+                print(repr(e))
+                pdb.post_mortem()
+
+            else:
+                state['special']['break_out'] -= 2
 
     def get_text(self):
         return self._text
@@ -183,16 +191,50 @@ def neu_500_print(*args):
     return True
 
 def neu_500_input(*args):
-    rx = r'get (?P<Var>[\w ]+?)( with prompt (?P<Prompt>[\w ]+))? from( the)? user'
+    rx = r'(get|read) (?P<Var>[\w ]+?)( with prompt (?P<Prompt>[\w ]+))? from( the)? user'
     if not args: return rx
     self, state = args
     vars = re.match(rx, self.get_text()).groupdict()
     prompt = vars.get('Prompt', None)
     if not prompt: prompt = 'enter something'
-    value = input(prompt + ' ')
+    value = input(prompt + ': ')
     state['var_heap'][vars.get('Var').replace(' ', '_')] = value
     state['special']['last_value'] = value
     return True
+
+def neu_500_eval(*args):
+    rx = r'evaluate (?P<Expr>[\w ]+)'
+    if not args: return rx
+    self, state = args
+    expr = re.match(rx, self.get_text()).group('Expr')
+    if expr in ['it']: expr = state['special'].get('last_value', 'Nothing to evaluate')
+    state['self'].read(expr)
+    state['self'].think()
+    return True
+
+def neu_500_loop(*args):
+    rx = r'loop( for each (?P<Item>[\w ]+?) in (?P<Coll>[\w ]+)| while (?P<WCond>[\w ]+)| until (?P<UCond>[\w ]+))?'
+    if not args: return rx
+    self, state = args
+    if DEBUG: pdb.set_trace()
+    if not 'break_out' in state['special']: state['special']['break_out'] = 0
+    text = self.get_text()
+    v_dict = re.match(rx, text).groupdict()
+
+    if text == 'loop':
+        # infinite loop
+        break_out = state['special']['break_out']
+        state['special']['break_out'] += 2
+
+        while True:
+
+            for neuron in self._chain:
+                # facilitate proper breaking between firing
+                neuron.fire(state)
+                if state['special']['break_out'] <= break_out: break
+
+            if state['special']['break_out'] <= break_out:
+                break
 
 def load_nuclei(cere, path):
     # get nuclei from a script or dir of scripts
@@ -201,11 +243,10 @@ def load_nuclei(cere, path):
 def create_cerebrum():
     return Cerebrum()
 
-
 def main():
     args = sys.argv
-    if len(args) == 1: return
     global interact
+    global DEBUG
     cere = Cerebrum()
 
     for pos, arg in enumerate(args):
@@ -213,6 +254,7 @@ def main():
         if pos > 0 and exists(arg):
             # script given; TODO: pass script args into script env
             script = open(args[1]).read()
+            if DEBUG: pdb.set_trace()
             cere.read(script)
             cere.think()
             if not interact: return
@@ -220,7 +262,8 @@ def main():
 
         elif arg in ['-c']:
             # command given
-            script = args[pos+1]
+            script = args[pos+1].replace('\\n', '\n')
+            if DEBUG: pdb.set_trace()
             cere.read(script)
             cere.think()
             if not interact: return
@@ -236,7 +279,6 @@ def main():
             return
 
         elif arg in ['-d']:
-            global DEBUG
             DEBUG = True
             continue
     i_act_script = 'interact.org'
