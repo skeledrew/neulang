@@ -1,4 +1,4 @@
-#! /home/skeledrew/.pyenv/shims/python3
+#! /usr/bin/env python
 
 # This file is part of neulang
 
@@ -26,7 +26,7 @@ from builtins import bytes, str
 import sys
 import pdb
 import re
-from os.path import exists
+from os.path import exists, join, dirname
 import json
 
 
@@ -262,7 +262,7 @@ def create_cerebrum():
     return Cerebrum()
 
 
-def main():
+def neu_main():
     args = sys.argv
     global interact
     global DEBUG
@@ -308,7 +308,7 @@ def main():
 
 DEBUG = False
 
-meta = json.load(open('meta.json'))
+meta = json.load(open(join(dirname(__file__), 'meta.json')))
 __author__ = meta.get('author', 'skeledrew')
 __version__ = meta.get('version', '0.0.1')
 
@@ -319,4 +319,4 @@ if not __name__ == '__main__' and sys.argv[0] == '':
     interact = True
 
 if __name__ == '__main__':
-    main()
+    neu_main()
