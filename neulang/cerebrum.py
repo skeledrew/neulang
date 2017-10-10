@@ -48,7 +48,7 @@ class Cerebrum():
         if not nuclei:
             nuclei = [
                 globals()[elem] for elem in globals()
-                if elem.startswith('neu_')
+                if elem.startswith('neu_') and not elem in ['neu_main']
             ]
         cnt = 0
 
@@ -308,7 +308,9 @@ def neu_main():
 
 DEBUG = False
 
-meta = json.load(open(join(dirname(__file__), 'meta.json')))
+meta_file = join(dirname(__file__), 'meta.json')
+if not exists(meta_file): open(meta_file, 'w').write('{}')
+meta = json.load(open(meta_file))
 __author__ = meta.get('author', 'skeledrew')
 __version__ = meta.get('version', '0.0.1')
 
